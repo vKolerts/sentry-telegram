@@ -3,7 +3,7 @@ Sentry Telegram |travis| |codecov| |pypi|
 
 Plugin for Sentry which allows sending notification via `Telegram <https://telegram.org/>`_ messenger.
 
-Presented plugin tested with Sentry 20.12.1.
+Presented plugin tested with Sentry 21.6.3.
 
     **DISCLAIMER**: Sentry API is under development and `is not frozen <https://docs.sentry.io/server/plugins/>`_.
 
@@ -18,11 +18,11 @@ How will it look like
 Installation
 ------------
 
-1. Install this package
+1. Install this package on your self-hosted Sentry.
 
 .. code-block:: bash
 
-    pip install sentry-telegram-py3
+    pip install sentry-telegram-plugin
 
 2. Restart your Sentry instance.
 3. Go to your Sentry web interface. Open ``Settings`` page of one of your projects.

@@ -6,11 +6,11 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.plugins.bases import notify
-from sentry.http import safe_urlopen
 from sentry_plugins.base import CorePluginMixin
 from sentry.utils.safe import safe_execute
-
 from . import __version__, __doc__ as package_doc
+import telegram
+from telegram import ParseMode
 
 
 class TelegramNotificationsOptionsForm(notify.NotificationConfigurationForm):
@@ -20,14 +20,16 @@ class TelegramNotificationsOptionsForm(notify.NotificationConfigurationForm):
         initial='https://api.telegram.org'
     )
     api_token = forms.CharField(
-        label=_('BotAPI token'),
+        label=_('Bot API token'),
         widget=forms.TextInput(attrs={'placeholder': '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'}),
         help_text=_('Read more: https://core.telegram.org/bots/api#authorizing-your-bot'),
     )
     receivers = forms.CharField(
         label=_('Receivers'),
         widget=forms.Textarea(attrs={'class': 'span6'}),
-        help_text=_('Enter receivers IDs (one per line). Personal messages, group chats and channels also available.'))
+        help_text=_(
+            'Enter receivers IDs (one per line). Personal messages, group chats and channels are also available' \
+            'You can use username for groups and channels'))
 
     message_template = forms.CharField(
         label=_('Message template'),
@@ -39,22 +41,20 @@ class TelegramNotificationsOptionsForm(notify.NotificationConfigurationForm):
 
 
 class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
-    title = 'Telegram Notifications Python3'
-    slug = 'sentry_telegram_py3'
+    title = 'Telegram Notifications'
+    slug = 'sentry_telegram_plugin'
     description = package_doc
     version = __version__
-    author = 'Vladislav Bukhman'
-    author_url = 'https://github.com/vortland/sentry-telegram'
+    author = 'Faraz Fesharaki'
+    author_url = 'https://github.com/FarazFe/sentry-telegram'
     resource_links = [
-        ('Source', 'https://github.com/vortland/sentry-telegram'),
+        ('Source', 'https://github.com/FarazFe/sentry-telegram'),
     ]
 
-    conf_key = 'sentry_telegram_py3'
+    conf_key = 'sentry_telegram_plugin'
     conf_title = title
 
     project_conf_form = TelegramNotificationsOptionsForm
-
-    logger = logging.getLogger('sentry.plugins.sentry_telegram_py3')
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option('api_token', project) and self.get_option('receivers', project))
@@ -83,7 +83,8 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
                 'name': 'receivers',
                 'label': 'Receivers',
                 'type': 'textarea',
-                'help': 'Enter receivers IDs (one per line). Personal messages, group chats and channels also available.',
+                'help': 'Enter receivers IDs (one per line). Personal messages, group chats and channels are also available' \
+                        'You can use username for groups and channels',
                 'validators': [],
                 'required': True,
             },
@@ -92,7 +93,7 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
                 'label': 'Message Template',
                 'type': 'textarea',
                 'help': 'Set in standard python\'s {}-format convention, available names are: '
-                    '{project_name}, {url}, {title}, {message}, {tag[%your_tag%]}. Undefined tags will be shown as [NA]',
+                        '{project_name}, {url}, {title}, {message}, {tag[%your_tag%]}. Undefined tags will be shown as [NA]',
                 'validators': [],
                 'required': True,
                 'default': '*[Sentry]* {project_name} {tag[level]}: *{title}*\n```{message}```\n{url}'
@@ -101,7 +102,7 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
 
     def build_message(self, group, event):
         the_tags = defaultdict(lambda: '[NA]')
-        the_tags.update({k:v for k, v in event.tags})
+        the_tags.update({k: v for k, v in event.tags})
         names = {
             'title': event.title,
             'tag': the_tags,
@@ -116,11 +117,8 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
 
         return {
             'text': text,
-            'parse_mode': 'Markdown',
+            'parse_mode': ParseMode.MARKDOWN,
         }
-
-    def build_url(self, project):
-        return '%s/bot%s/sendMessage' % (self.get_option('api_origin', project), self.get_option('api_token', project))
 
     def get_message_template(self, project):
         return self.get_option('message_template', project)
@@ -129,25 +127,16 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
         receivers = self.get_option('receivers', project)
         if not receivers:
             return []
-        return list(filter(bool, receivers.strip().splitlines()))
+        res = list(filter(bool, receivers.strip().splitlines()))
+        return res
 
-    def send_message(self, url, payload, receiver):
-        payload['chat_id'] = receiver
-        self.logger.debug('Sending message to %s ' % receiver)
-        response = safe_urlopen(
-            method='POST',
-            url=url,
-            json=payload,
-        )
-        self.logger.debug('Response code: %s, content: %s' % (response.status_code, response.content))
+    def send_message(self, payload, receiver, bot):
+        bot.send_message(chat_id=receiver, text=payload['text'], parse_mode=payload['parse_mode'])
 
     def notify_users(self, group, event, **kwargs):
-        self.logger.debug('Received notification for event: %s' % event)
+        token = self.get_option('api_token', group.project)
+        bot = telegram.Bot(token)
         receivers = self.get_receivers(group.project)
-        self.logger.debug('for receivers: %s' % ', '.join(receivers or ()))
         payload = self.build_message(group, event)
-        self.logger.debug('Built payload: %s' % payload)
-        url = self.build_url(group.project)
-        self.logger.debug('Built url: %s' % url)
         for receiver in receivers:
-            safe_execute(self.send_message, url, payload, receiver, _with_transaction=False)
+            safe_execute(self.send_message, payload, receiver, bot, _with_transaction=False)

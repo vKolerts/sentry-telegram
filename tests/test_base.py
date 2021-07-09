@@ -8,8 +8,7 @@ from sentry.models import Rule
 from sentry.plugins.base import plugins, Notification
 from sentry.testutils import PluginTestCase
 
-
-from sentry_telegram_py3.plugin import TelegramNotificationsPlugin
+from sentry_telegram_plugin.plugin import TelegramNotificationsPlugin
 
 
 class BaseTest(PluginTestCase):
@@ -17,9 +16,8 @@ class BaseTest(PluginTestCase):
     def initialized_plugin(self):
         return TelegramNotificationsPlugin()
 
-
     def test_conf_key(self):
-        assert self.initialized_plugin.conf_key == "sentry_telegram_py3"
+        assert self.initialized_plugin.conf_key == "sentry_telegram_plugin"
 
     @responses.activate
     def test_complex_send_notification(self):
@@ -35,27 +33,27 @@ class BaseTest(PluginTestCase):
 
         event = self.store_event(
             data={
-                "message": "Hello world", 
+                "message": "Hello world",
                 "level": "error",
                 "platform": "python",
-            }, 
+            },
             project_id=self.project.id
         )
         rule = Rule.objects.create(project=self.project, label="my rule")
-        
+
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}):
             self.initialized_plugin.notify(notification)
-        
+
         request = responses.calls[0].request
         print(request)
         print(request.url)
         print(request.body)
 
         message_text = '*[Sentry]* Bar error: Hello world\n' \
-                            'Hello world\n' \
-                            'http://example.com/organizations/baz/issues/1/'
+                       'Hello world\n' \
+                       'http://example.com/organizations/baz/issues/1/'
 
         assert request.url == 'https://api.telegram.org/botapi:token/sendMessage'
 
@@ -65,7 +63,6 @@ class BaseTest(PluginTestCase):
             'parse_mode': 'Markdown',
             'chat_id': '123',
         }
-        
 
     @staticmethod
     def assert_notification_helper(request_call, message_text):
