@@ -4,15 +4,16 @@ from setuptools import setup
 
 from sentry_telegram_notification import __version__
 
-
 with open('README.rst', 'r') as f:
     long_description = f.read()
-
 
 setup(
     name='sentry_telegram_notification',
     version=__version__,
     packages=['sentry_telegram_notification'],
+    install_requires=[
+        'python-telegram-bot==13.7',
+    ],
     url='https://github.com/FarazFe/sentry-telegram',
     author='Faraz Fesharaki',
     author_email='fesharakifaraz@gmail.com',
