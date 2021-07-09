@@ -42,7 +42,7 @@ class TelegramNotificationsOptionsForm(notify.NotificationConfigurationForm):
 
 class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
     title = 'Telegram Notifications'
-    slug = 'sentry_telegram_plugin'
+    slug = 'sentry_telegram_notification'
     description = package_doc
     version = __version__
     author = 'Faraz Fesharaki'
@@ -51,7 +51,7 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
         ('Source', 'https://github.com/FarazFe/sentry-telegram'),
     ]
 
-    conf_key = 'sentry_telegram_plugin'
+    conf_key = 'sentry_telegram_notification'
     conf_title = title
 
     project_conf_form = TelegramNotificationsOptionsForm

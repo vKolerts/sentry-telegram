@@ -8,7 +8,7 @@ from sentry.models import Rule
 from sentry.plugins.base import plugins, Notification
 from sentry.testutils import PluginTestCase
 
-from sentry_telegram_plugin.plugin import TelegramNotificationsPlugin
+from sentry_telegram_notification import TelegramNotificationsPlugin
 
 
 class BaseTest(PluginTestCase):
@@ -17,7 +17,7 @@ class BaseTest(PluginTestCase):
         return TelegramNotificationsPlugin()
 
     def test_conf_key(self):
-        assert self.initialized_plugin.conf_key == "sentry_telegram_plugin"
+        assert self.initialized_plugin.conf_key == "sentry_telegram_notification"
 
     @responses.activate
     def test_complex_send_notification(self):
