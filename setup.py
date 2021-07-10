@@ -23,7 +23,7 @@ setup(
     license='MIT',
     entry_points={
         'sentry.plugins': [
-            'sentry_telegram_notification = sentry_telegram_notification:TelegramNotificationsPlugin',
+            'sentry_telegram_notification = sentry_telegram_notification.plugin:TelegramNotificationsPlugin',
         ],
     },
     classifiers=[
