@@ -114,6 +114,7 @@ class TelegramNotificationsPlugin(CorePluginMixin, notify.NotificationPlugin):
         template = self.get_message_template(group.project)
 
         text = template.format(**names)
+        text = text[:4000]  # telegram max message length
 
         return {
             'text': text,
